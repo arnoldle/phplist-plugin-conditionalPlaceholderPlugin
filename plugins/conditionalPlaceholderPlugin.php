@@ -32,6 +32,10 @@
  * optional. A conditional placeholder MUST appear inside a string preceded by an [*IF*]
  * tag. Further the first string, preceded by [*IF*] and terminated by [*ELSE*] or
  * [*ENDIF*] must contain at least one conditional placeholder.
+ *
+ * Every star bracket conditional placeholder must actually contain a user attribute name.
+ * If what is inside any such placeholder is not a user attribute name in upper case,
+ * the message will not be queued.
  * 
  */
 
@@ -57,8 +61,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 	private $brackets = array('[*', '', '*]');
 	private $brackpat;
 	private $sympat;
-	private $subjectPlaceholder = false;
 	private $user_att_values = array();
+	private $attNames = array();
 	
 	private function buildPattern ($syms) { // build a regex pattern to find the elements of $syms in a string
 		$pat = '';
@@ -120,6 +124,22 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     		return '';
 	}
 
+	// Get names of user attributes in upper case form
+	private function loadAttributeNames()
+	{
+		$attnames = array();
+   		$att_table = $GLOBALS['tables']["attribute"];
+    	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
+    	while ($row = Sql_Fetch_Row($res))
+    		$attnames[] = $row[0];
+    		
+    	foreach ($attnames as &$aname) 
+    		$aname = strtoupper($aname);
+    	unset ($aname);  // Not sure if this is needed. The reference should disappear when $attnames goes out of scope.
+    	
+    	return $attnames;
+       
+	}
             	
 	public function __construct()
     {
@@ -128,6 +148,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         
         $this->brackpat = $this->buildPattern($this->brackets);
         $this->sympat = $this->buildPattern($this->symbols);
+        
+        $this->attnames = $this->loadAttributeNames();
         
 	  	parent::__construct();
     }
@@ -179,6 +201,17 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   			$str = preg_replace('@\[\*IF\*\](?:.*)(?:\[\*ELSE\*\](?:.*))?\[\*ENDIF\*\]@Ums','', $str); // Remove [*IF*] strings
   			if (strpos($str, '[*') !== false) // Look for star bracket in what's left
 				return "Conditional place holder outside [*IF*] clause<br \>in $placenames[$key]!"; 
+		}
+		
+	// Check that all the star bracket placeholders actually represent user attributes
+		foreach ($places as $key => $str) {
+			preg_match_all('@\[\*(.*)\*\]@Ums', $str, $match);
+			$holders = $match[0];
+  			$atts = $match[1];
+			foreach ($atts as $key2 => $val) {
+				if (in_array($val, $this->attnames) === false) 
+					return "Star bracket {$holders[$key2]} in $placenames[$key]<br \>does not correspond to known user attribute!";
+			}
 		}
     	return '';
   }
