@@ -36,6 +36,9 @@
  * Every star bracket conditional placeholder must actually contain a user attribute name.
  * If what is inside any such placeholder is not a user attribute name in upper case,
  * the message will not be queued.
+ *
+ * ***** This version works, but some areas of the code are pretty clumsy and need cleaning up. 
+ * This is the first cut at the problem, to be followed soon by a second release. ******
  * 
  */
 
@@ -160,6 +163,12 @@ class conditionalPlaceholderPlugin extends phplistPlugin
    * @return empty string if allowed, or error string containing reason for not allowing
    * 
    * Here is where we check that the conditional placeholders are well formed.
+   * This is a very clumsy parser. Some of the checks below were added as late
+   * after thoughts. This code can be simplfied by doing the parsing with a simple
+   * four state machine.
+   *
+   * Further more the symbols [*, *], [*IF*], etc. are mostly hardwired, making it 
+   * difficult to change the syntax, if it should be necessary.
    */
 	public function allowMessageToBeQueued($messagedata = array()) {
 		$places = array($messagedata['message'], $messagedata['textmessage'], $messagedata['subject'], $this->loadTemplate($messagedata['template']));
