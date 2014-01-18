@@ -107,22 +107,25 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         $this->coderoot = dirname(__FILE__) . '/conditionalPlaceholderPlugin/';
         
         // Load syntax parameters
-        $this->brackets = cpConfig::cpBrackets;
+        $this->brackets = cpConfig::$cpBrackets;
         foreach ($this->brackets as &$val)
         	$val = trim ($val);
-        $this->keywords = cpConfig::cpKeywords;
+		unset($val);
+        $this->keywords = cpConfig::$cpKeywords;        
+    
         foreach ($this->keywords as &$val)
         	$val = trim ($val);
-        $this->needElse = cpConfig::explicitElse;
-        
+        unset ($val);
+        $this->needElse = cpConfig::$explicitElse;
+      
         $this->attnames = $this->loadAttributeNames();
-        
+
        // Bracket the keywords
         $ary = array ();
         foreach ($this->keywords as $key => $val)
         	$ary[$key] = $this->brackets[0] . $val . $this->brackets[1];
         list ($this->pif, $this->pels, $this->pend) = $ary;
-        
+
         // Build regex pattern for placeholder processing
        $this->actionpat = '@' . preg_quote($this->pif) . '(.*)(?:' . preg_quote($this->pels) . '(.*))?' . preg_quote($this->pend) .'@Ums';
         
@@ -152,24 +155,27 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	return ($state == 0);
     }
     
-    public function checkConfig()
+    private function checkConfig()
     {
-    	if ((count($this->brackets) != 2) || ($this->brackets[0] == '') || ($this->brackets[1] ==''))
-    		return 'Bracket definitions cannot be empty nor more than 2!';
+    	if (count($this->brackets) != 2)
+    		return 'There must be exactly 2 placeholder brackets defined in the config file!';
+    	if (($this->brackets[0] == '') || ($this->brackets[1] ==''))
+    		return 'Each placeholder bracket must be defined in the config file!';
     	if ($this->brackets[0] == $this->brackets[1])
     		return 'Left and right placeholder brackets must be distinct!';
+    	if (count($this->keywords) !=3)
+    		return 'There must be exactly 3 keywords defined in the config file!';
     		
     	$badK = false;
     	foreach ($this->keywords as $val) {
-    		if ($val = '') {
+    		if ($val == '') {
     			$badK = true;
     			break;
     		}
     	}
+    	if ($badK)
+    		return 'A keyword cannot be an empty string in the config file!';
     	
-    	if ($badK || (count($this->keywords) !=3))
-    		return 'There must be exactly 3 non-empty keywords';
-    		
     	$test = $this->brackets[0] . 'TEST' . $this->brackets[1];
     	if ($test != strip_tags($test))
     		return 'Placeholder brackets must not conflict with HTML tags!';
@@ -189,20 +195,22 @@ class conditionalPlaceholderPlugin extends phplistPlugin
    * Here is where we check that the conditional placeholders are well formed.
    *
    */
+
 	public function allowMessageToBeQueued($messagedata = array()) {
 		$places = array($messagedata['message'], $messagedata['textmessage'], $messagedata['subject'], $this->loadTemplate($messagedata['template']));
   		$placenames = array('message', 'text message', 'subject line', 'template');
   		$pat = '@' . preg_quote($this->brackets[0]) . '(.*)' . preg_quote($this->brackets[1]) . '@Ums';
     	$symbols = array($this->pif, '', $this->pels, $this->pend);
-    	
+   	
     	// Configuration errors in brackets and keywords are always checked whether
     	// there are placeholders in the message or not.
-    	$res = checkConfig();
+    	//$res = $this->checkConfig();
     	if ($res)
     		return "Config Error: $res";
     		
   		// Check that the syntax for the conditional placeholders is correct
   		// Do the check with a four-state machine.
+  
   		foreach ($places as $key => $str) {
   			if (!$str)
   				continue;
@@ -217,42 +225,42 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     		$n = count($found);
   			$state = 0;
   			$ptr = 0;
-  			while ($ptr < $n) {
+ 			while ($ptr < $n) {
+ 				$current = $found[$ptr];
   				switch($state) {
   					case 0:  		// Looking of 'if'
   					case 3:			// Looking for 'endif'
-  						if ($found[$ptr] == $symbols[$state]) {
+  						if ($current == $symbols[$state]) {
   							$ptr++;
   							$state++;
   							$state %= 4;	
   						} else
-  							return "Looking for $symbols[$state] but found $found[$ptr] in $placenames[$key]!";
+  							return "Looking for $symbols[$state] but found $current in $placenames[$key]!";
   						break;
   					case 1:			// Looking for one of our placeholders
   						if (in_array($enclosd[$ptr], $this->attnames) === false) 
-                            return "Looking for placeholder for a known attribute but found $found[$ptr] in $placenames[$key]!";
+                            return "Looking for placeholder for a known attribute but found $current in $placenames[$key]!";
                         else {
                         	$ptr++;
                         	$state++;
                         }
                         break;
                     case 2:			// Looking for one of our placeholders or an 'else'
-                    	if ($found[$ptr] == $symbols[$state]) { 	//
+                    	if ($current == $symbols[$state]) { 	//
   							$ptr++;
   							$state++;  	// Have 'else'. Look for 'endif'
   						} elseif (in_array($enclosd[$ptr], $this->attnames) !== false)
   							$ptr++;		// Continue in same state until we find the 'else'
-  						elseif ((!$this->needElse) && ($found[$ptr] == $symbols[$state + 1])) {
+  						elseif ((!$this->needElse) && ($current == $symbols[$state + 1])) {
   							$ptr++;		// Don't need 'else'; found 'endif'
   							$state = 0; 
   						} else 
-  							return "Looking for placeholder for a known attribute or $symbols[$state] but found $found[$ptr] in $placenames[$key]!";
-  					
+  							return "Looking for placeholder for a known attribute or $symbols[$state] but found $current in $placenames[$key]!";					
   				}
-  			}
+  			} 
   			if ($state != 0)
-  				return "Last found $found[$ptr], but ran out of text before completing conditional expression in $placenames[$key]!"; 		
-  		}
+  				return "Last found $current, but ran out of text before completing conditional expression in $placenames[$key]!"; 		
+  		} 
  		return '';
   }
 
@@ -309,7 +317,6 @@ class conditionalPlaceholderPlugin extends phplistPlugin
       			    if ($novalue)  // Oops, no value for this one
       			    	break;
         			$str = str_ireplace($pat,$v2,$str);
-        			break;			// The loop is done when we've found the attribute
       			}
       		}
      		if ($novalue)
