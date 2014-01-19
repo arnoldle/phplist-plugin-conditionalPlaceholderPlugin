@@ -12,7 +12,10 @@
  * 
  */
 
-require_once dirname(__FILE__)."/conditionalPlaceholderPlugin/config.php";
+// The config file may be missing because of the failure of the phplist installer to install it.
+$configFile = dirname(__FILE__)."/conditionalPlaceholderPlugin/config.php";
+if (file_exists($configFile))
+	include_once $configFile;
 
 /**
  * Registers the plugin with phplist
@@ -72,7 +75,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         $this->coderoot = dirname(__FILE__) . '/conditionalPlaceholderPlugin/';
         
         // Load syntax parameters
-        if (class_exists('cpConfi')) {
+        if (class_exists('cpConfig')) {  // The config file defining the cpConfig class may be missing.
         	$this->brackets = cpConfig::$cpBrackets;
         	foreach ($this->brackets as &$val)
         		$val = trim ($val);
