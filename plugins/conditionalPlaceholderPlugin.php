@@ -7,44 +7,8 @@
  * It allows standard placeholders to be used in the subject line of messages, as well
  * as conditional placeholders.
  *
- * The standard placeholder is the attribute name in uppercase and enclosed in square brackets.
- * A conditional placeholder is the same, except that it is enclosed in 'star brackets,'
- * for example: [*NAME*].
- *
- * The following syntax allows an alternative string to replace the string containing
- * the placeholder, in case the placeholder attribute has no value:
- *
- * [*IF*]This is a string for user [*FIRSTNAME*] [*LASTNAME*] [*ELSE*]Here is the alternate string [*ENDIF*].
- *
- * If either of the conditional placeholders in the first string is without a value, the 
- * alternate string replaces it. In any case, the [*IF*], [*ELSE*], and [*ENDIF*] tags are 
- * removed. If you want to have an empty alternate string, you MUST put the [*ELSE*]
- * adjacent to [*ENDIF*]. This is a change from the initial release, because if the
- * [*ELSE*] were to be omitted accidentally, the earlier version of the plugin would not have caught the error.
- * The point is that if you want an empty alternate string, you must explicitly declare it
- * to be empty by entering nothing between the [*ELSE*] and the [*ENDIF*]. However, if 
- * you want the former behavior, you can set 'explicitElse' in the config file to false.
- * This is not recommended. 
- * 
- * The presence or absence of a value for any standard placeholders in the first string
- * or the alternate string have no effect on whether the first string or the alternate
- * string appears in the message. Which string appears is determined solely by 
- * the existence or absence of a value for the conditional placeholders in the first
- * string.
- * 
- * The [*IF*]...[*ELSE*]...[*ENDIF*] construction must be well-formed, or the message
- * will not be queued. Remember the appearance of the [*ELSE*] with an alternate string is
- * NOT optional now. A conditional placeholder MUST appear inside a string preceded by an [*IF*]
- * tag. Further the first string, preceded by [*IF*] and terminated by [*ELSE*] or
- * must contain at least one conditional placeholder.
- *
- * Every star bracket conditional placeholder must actually contain a user attribute name.
- * If what is inside any such placeholder is not a user attribute name in upper case,
- * the message will not be queued.
- *
- * The syntax is configurable. If you want different bracketing other than '[*' and 
- * '*]' you can change it in the config file. If you want other keywords other than
- * 'IF', 'ELSE' and 'ENDIF', you can also change them in the config file.
+ * For more information about how to use this plugin, see
+ * http://resources.phplist.com/plugins/conditionalplaceholder .
  * 
  */
 
@@ -71,7 +35,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     private $brackets = array(); 
     private $keywords = array();
 	private $pif, $pels, $pend;
-	private $checkpat,  $actionpat; // Patterns to for syntax checking and processing placeholders
+	private $actionpat; // Pattern for replacing placeholders
 	private $user_att_values = array();
 	private $attNames = array();
 	
@@ -314,7 +278,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   				$pat = $this->brackets[0] . $k2 .  $this->brackets[1];
       			if (stripos($str, $pat) !== false) { // found one?   
       			    $novalue = empty($v2);
-      			    if ($novalue)  // Oops, no value for this one
+      			    if ($novalue)  // Oops, no value for this one, quit looking
       			    	break;
         			$str = str_ireplace($pat,$v2,$str);
       			}
