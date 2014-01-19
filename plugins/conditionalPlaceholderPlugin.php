@@ -28,12 +28,13 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      */
     public $name = 'Conditional Placeholder Plugin';
     public $version = '1.0a2';
-    public $enabled = true;
+    public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
     
-    private $brackets = array(); 
-    private $keywords = array();
+    private $brackets = array('[*','*]'); 
+    private $keywords = array('IF', 'ELSE', 'ENDIF');
+    private $needElse = true;
 	private $pif, $pels, $pend;
 	private $actionpat; // Pattern for replacing placeholders
 	private $user_att_values = array();
@@ -71,16 +72,18 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         $this->coderoot = dirname(__FILE__) . '/conditionalPlaceholderPlugin/';
         
         // Load syntax parameters
-        $this->brackets = cpConfig::$cpBrackets;
-        foreach ($this->brackets as &$val)
-        	$val = trim ($val);
-		unset($val);
-        $this->keywords = cpConfig::$cpKeywords;        
+        if (class_exists('cpConfi')) {
+        	$this->brackets = cpConfig::$cpBrackets;
+        	foreach ($this->brackets as &$val)
+        		$val = trim ($val);
+			unset($val);
+        	$this->keywords = cpConfig::$cpKeywords;        
     
-        foreach ($this->keywords as &$val)
-        	$val = trim ($val);
-        unset ($val);
-        $this->needElse = cpConfig::$explicitElse;
+        	foreach ($this->keywords as &$val)
+        		$val = trim ($val);
+        	unset ($val);
+        	$this->needElse = cpConfig::$explicitElse;
+        }
       
         $this->attnames = $this->loadAttributeNames();
 
