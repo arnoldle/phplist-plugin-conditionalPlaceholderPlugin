@@ -1,4 +1,4 @@
-phplist-plugin-subjectLinePlaceholdersPlugin
+phplist-plugin-conditionalPlaceholdersPlugin
 ===================================
 
 A plugin to allow conditional placeholders in phplist messages, including in the subject line.
