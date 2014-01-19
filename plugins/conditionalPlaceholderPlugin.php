@@ -1,46 +1,18 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 1.0a1
+ * conditionalPlaceholder plugin version 1.0a2
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
  * as conditional placeholders.
  *
- * The standard placeholder is the attribute name in uppercase and enclosed in square brackets.
- * A conditional placeholder is the same, except that it is enclosed in 'star brackets,'
- * for example: [*NAME*].
- *
- * The following syntax allows an alternative string to replace the string containing
- * the placeholder, in case the placeholder attribute has no value:
- *
- * [*IF*]This is a string for user [*FIRSTNAME*] [*LASTNAME*] [*ELSE*]Here is the alternate string [*ENDIF*].
- *
- * If either of the conditional placeholders in the first string is without a value, the 
- * alternate string replaces it. In any case, the [*IF*], [*ELSE*], and [*ENDIF*] tags are 
- * removed. If the [*ELSE*] clause is missing, the alternate string is taken to be the
- * empty string.
- * 
- * The presence or absence of a value for any standard placeholders in the first string
- * or the alternate string have no effect on whether the first string or the alternate
- * string appears in the message. Which string appears is determined solely by 
- * the existence or absence of a value for the conditional placeholders in the first
- * string.
- * 
- * The [*IF*]...[*ELSE*]...[*ENDIF*] construction must be well-formed, or the message
- * will not be queued. Remember the appearance of the [*ELSE*] with an alternate string is
- * optional. A conditional placeholder MUST appear inside a string preceded by an [*IF*]
- * tag. Further the first string, preceded by [*IF*] and terminated by [*ELSE*] or
- * [*ENDIF*] must contain at least one conditional placeholder.
- *
- * Every star bracket conditional placeholder must actually contain a user attribute name.
- * If what is inside any such placeholder is not a user attribute name in upper case,
- * the message will not be queued.
- *
- * ***** This version works, but some areas of the code are pretty clumsy and need cleaning up. 
- * This is the first cut at the problem, to be followed soon by a second release. ******
+ * For more information about how to use this plugin, see
+ * http://resources.phplist.com/plugins/conditionalplaceholder .
  * 
  */
+
+require_once dirname(__FILE__)."/conditionalPlaceholderPlugin/config.php";
 
 /**
  * Registers the plugin with phplist
@@ -55,68 +27,17 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '1.0a1';
+    public $version = '1.0a2';
     public $enabled = true;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
     
-    private $symbols = array ('[*IF*]', '[*ELSE*]', '[*ENDIF*]');
-	private $brackets = array('[*', '', '*]');
-	private $brackpat;
-	private $sympat;
+    private $brackets = array(); 
+    private $keywords = array();
+	private $pif, $pels, $pend;
+	private $actionpat; // Pattern for replacing placeholders
 	private $user_att_values = array();
 	private $attNames = array();
-	
-	private function buildPattern ($syms) { // build a regex pattern to find the elements of $syms in a string
-		$pat = '';
-		foreach ($syms as $val) {
-			$pat .= preg_quote($val);
-			if ($val)
-				$pat .= '|';
-		}
-		return substr($pat, 0, -1);
-    } 
-    
-/* Check the tag syntax with a three state machine.
- * $tags is the sequential array of symbols picked out from the text with a 
- * regular expression. The symbols should alternate: 'if', 'else', 'endif'..
- * 'if', 'else', 'endif'. The 'endif' symbol must be the last in the array. The
- * 'if' symbol must be the first in the array. The 'else' symbol is always
- * optional between 'if' and 'endif'
- *
- * This machine also can check that all star brackets are closed.
- * 
- * Returns Boolean true if everything OK. Otherwise, return the index of the incorrect 
- * tag in the $tags array
- */
-	private function checkSyntax($tags, $symbols) {
-		$n = count($tags);
-		$state = 0;
-		$ptr = 0;
-		$error = false;
-		while ($ptr < $n) {
-			if ($symbols[$state] == $tags[$ptr]) {  // Correct tag?
-				$state++;							// Go to next state
-				$state %= 3;   						// States; 0, 1, or 2
-				$ptr++;								// Ready for the next tag
-			} 
-			else if (($state == 1) && ($symbols[2] == $tags[$ptr])){  // 'Else' tag is optional; could hit 'endif' tag instead
-				$state = 0;							// If it's an 'endif' tag, go back to starting state
-				$ptr++;								// Ready for the next tag
-			}
-			else {									// Wrong tag for this state
-				$error = true;
-				break;
-			}
-		}
-	
-		if ($error)				// If we had an error, return the index of the incorrect tag
-			return $ptr;
-		elseif ($state <> 0)    // $test not closed with $end
-			return --$ptr;		// $ptr was incremented to point to nonexistent next tag
-		else
-			return true;		// If everything OK, return a Boolean value
-	}
 	
 	private function loadTemplate($tid)
 	{
@@ -149,13 +70,86 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 
         $this->coderoot = dirname(__FILE__) . '/conditionalPlaceholderPlugin/';
         
-        $this->brackpat = $this->buildPattern($this->brackets);
-        $this->sympat = $this->buildPattern($this->symbols);
-        
+        // Load syntax parameters
+        $this->brackets = cpConfig::$cpBrackets;
+        foreach ($this->brackets as &$val)
+        	$val = trim ($val);
+		unset($val);
+        $this->keywords = cpConfig::$cpKeywords;        
+    
+        foreach ($this->keywords as &$val)
+        	$val = trim ($val);
+        unset ($val);
+        $this->needElse = cpConfig::$explicitElse;
+      
         $this->attnames = $this->loadAttributeNames();
+
+       // Bracket the keywords
+        $ary = array ();
+        foreach ($this->keywords as $key => $val)
+        	$ary[$key] = $this->brackets[0] . $val . $this->brackets[1];
+        list ($this->pif, $this->pels, $this->pend) = $ary;
+
+        // Build regex pattern for placeholder processing
+       $this->actionpat = '@' . preg_quote($this->pif) . '(.*)(?:' . preg_quote($this->pels) . '(.*))?' . preg_quote($this->pend) .'@Ums';
         
-	  	parent::__construct();
+       parent::__construct();
     }
+    
+    // This function returns true if the brackets around the conditional keywords 
+    // and placeholders balance -- open and closed. Otherwise it returns false
+    // It's a two-state machine.
+    private function bracketsBalance($str)
+    {
+    	$pat = '@(?:' . preg_quote($this->brackets[0]) . ')|(?:' .preg_quote($this->brackets[1]) . ')@m';
+    	preg_match_all ($pat, $str, $match);
+    	$brckts = $match[0];
+    	$n = count($brckts);
+    	$state = 0;
+    	$ptr = 0;
+    	while ($ptr < $n) {
+    		if ($brckts[$ptr] == $this->brackets[$state]) {
+    			$ptr++;
+    			$state++;
+    			$state %= 2;
+    		}
+    		else
+    			return false;
+    	}
+    	return ($state == 0);
+    }
+    
+    private function checkConfig()
+    {
+    	if (count($this->brackets) != 2)
+    		return 'There must be exactly 2 placeholder brackets defined in the config file!';
+    	if (($this->brackets[0] == '') || ($this->brackets[1] ==''))
+    		return 'Each placeholder bracket must be defined in the config file!';
+    	if ($this->brackets[0] == $this->brackets[1])
+    		return 'Left and right placeholder brackets must be distinct!';
+    	if (count($this->keywords) !=3)
+    		return 'There must be exactly 3 keywords defined in the config file!';
+    		
+    	$badK = false;
+    	foreach ($this->keywords as $val) {
+    		if ($val == '') {
+    			$badK = true;
+    			break;
+    		}
+    	}
+    	if ($badK)
+    		return 'A keyword cannot be an empty string in the config file!';
+    	
+    	$test = $this->brackets[0] . 'TEST' . $this->brackets[1];
+    	if ($test != strip_tags($test))
+    		return 'Placeholder brackets must not conflict with HTML tags!';
+    		
+    	if ($test != preg_replace('@\[[A-Za-z0-9_ ]+\]@U','',$test))
+    		return 'Placeholder brackets must not conflict with standard placeholders!';
+    	
+    	return '';
+    }
+
     
 /* allowMessageToBeQueued
    * called to verify that the message can be added to the queue
@@ -163,66 +157,75 @@ class conditionalPlaceholderPlugin extends phplistPlugin
    * @return empty string if allowed, or error string containing reason for not allowing
    * 
    * Here is where we check that the conditional placeholders are well formed.
-   * This is a very clumsy parser. Some of the checks below were added as late
-   * after thoughts. This code can be simplfied by doing the parsing with a simple
-   * four state machine.
    *
-   * Further more the symbols [*, *], [*IF*], etc. are mostly hardwired, making it 
-   * difficult to change the syntax, if it should be necessary.
    */
+
 	public function allowMessageToBeQueued($messagedata = array()) {
 		$places = array($messagedata['message'], $messagedata['textmessage'], $messagedata['subject'], $this->loadTemplate($messagedata['template']));
   		$placenames = array('message', 'text message', 'subject line', 'template');
-  		
-  		// Check that star brackets and [*IF*]...[*ELSE*]...[*ENDIF*] constructions are
-  		// well-formed
-  		$patterns = array ($this->brackpat, $this->sympat);
-  		$tags2ck = array ($this->brackets, $this->symbols);
+  		$pat = '@' . preg_quote($this->brackets[0]) . '(.*)' . preg_quote($this->brackets[1]) . '@Ums';
+    	$symbols = array($this->pif, '', $this->pels, $this->pend);
+   	
+    	// Configuration errors in brackets and keywords are always checked whether
+    	// there are placeholders in the message or not.
+    	//$res = $this->checkConfig();
+    	if ($res)
+    		return "Config Error: $res";
+    		
+  		// Check that the syntax for the conditional placeholders is correct
+  		// Do the check with a four-state machine.
+  
   		foreach ($places as $key => $str) {
   			if (!$str)
   				continue;
-  			foreach ($patterns as $ndx => $pat) {
-  				preg_match_all("@$pat@", $str, $match);
-				$tags = $match[0];
-				$result = $this->checkSyntax($tags, $tags2ck[$ndx]);
-				if ($result !== true)
-					return "$tags[$result] out of place in $placenames[$key]!"; 
-			}
-  		}
-  		
-  		// Now that every original string beginning with [*IF*] contains a
-  		// conditional placeholder. Also check that no star brackets in alternate string.
-  		foreach ($places as $key => $str) {
-  			preg_match_all('@\[\*IF\*\](.*)(?:\[\*ELSE\*\](.*))?\[\*ENDIF\*\]@Ums', $str, $match);
-  			$holders = $match[0];
-  			$orig = $match[1];  // The array of 'original strings'
-  			$alt = $match[2]; 	// The array of 'alternate strings'
-			foreach ($orig as $key2 => $val) { // Star bracket in each one?
-				if (strpos($val, '[*') === false)
-					return "No conditional place holder in -> $holders[$key2]<br \>in $placenames[$key]!"; 
-				if (strpos($alt[$key2], '[*') !== false)
-					return "Alternate string holds conditional placeholder in -> $holders[$key2]<br \>in $placenames[$key]!";
-			}
-		}
-		
-		// Check for any 'loose' conditional placeholders not in the proper '[*IF*] string'
-		foreach ($places as $key => $str) {
-  			$str = preg_replace('@\[\*IF\*\](?:.*)(?:\[\*ELSE\*\](?:.*))?\[\*ENDIF\*\]@Ums','', $str); // Remove [*IF*] strings
-  			if (strpos($str, '[*') !== false) // Look for star bracket in what's left
-				return "Conditional place holder outside [*IF*] clause<br \>in $placenames[$key]!"; 
-		}
-		
-	// Check that all the star bracket placeholders actually represent user attributes
-		foreach ($places as $key => $str) {
-			preg_match_all('@\[\*(.*)\*\]@Ums', $str, $match);
-			$holders = $match[0];
-  			$atts = $match[1];
-			foreach ($atts as $key2 => $val) {
-				if (in_array($val, $this->attnames) === false) 
-					return "Star bracket {$holders[$key2]} in $placenames[$key]<br \>does not correspond to known user attribute!";
-			}
-		}
-    	return '';
+  				
+  			// Make sure that we have no open brackets
+  			if (!$this->bracketsBalance($str))
+  				return "Conditional brackets do not balance in $placenames[$key]!";
+  				
+  			preg_match_all($pat, $str, $match);
+  			$found = $match[0]; 	// The symbols we found
+  			$enclosd = $match[1]; 	// What's between the brackets
+    		$n = count($found);
+  			$state = 0;
+  			$ptr = 0;
+ 			while ($ptr < $n) {
+ 				$current = $found[$ptr];
+  				switch($state) {
+  					case 0:  		// Looking of 'if'
+  					case 3:			// Looking for 'endif'
+  						if ($current == $symbols[$state]) {
+  							$ptr++;
+  							$state++;
+  							$state %= 4;	
+  						} else
+  							return "Looking for $symbols[$state] but found $current in $placenames[$key]!";
+  						break;
+  					case 1:			// Looking for one of our placeholders
+  						if (in_array($enclosd[$ptr], $this->attnames) === false) 
+                            return "Looking for placeholder for a known attribute but found $current in $placenames[$key]!";
+                        else {
+                        	$ptr++;
+                        	$state++;
+                        }
+                        break;
+                    case 2:			// Looking for one of our placeholders or an 'else'
+                    	if ($current == $symbols[$state]) { 	//
+  							$ptr++;
+  							$state++;  	// Have 'else'. Look for 'endif'
+  						} elseif (in_array($enclosd[$ptr], $this->attnames) !== false)
+  							$ptr++;		// Continue in same state until we find the 'else'
+  						elseif ((!$this->needElse) && ($current == $symbols[$state + 1])) {
+  							$ptr++;		// Don't need 'else'; found 'endif'
+  							$state = 0; 
+  						} else 
+  							return "Looking for placeholder for a known attribute or $symbols[$state] but found $current in $placenames[$key]!";					
+  				}
+  			} 
+  			if ($state != 0)
+  				return "Last found $current, but ran out of text before completing conditional expression in $placenames[$key]!"; 		
+  		} 
+ 		return '';
   }
 
  /* setFinalDestinationEmail
@@ -251,7 +254,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
  	// proper string.
  	 private function parseOutgoingMessage($content)
  	 {
- 	 	if ((!$content) || (strpos($content, '[*') === false))
+ 	 	if ((!$content) || (strpos($content, $this->brackets[0]) === false))
  	 		return $content;
  	 	
  	 	$atts = array();
@@ -263,7 +266,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     		$atts[str_ireplace(' ','&nbsp;',strtoupper($key))] = $val;
   		}
 
- 	 	preg_match_all('@\[\*IF\*\](.*)(?:\[\*ELSE\*\](.*))?\[\*ENDIF\*\]@Ums', $content, $match);
+ 	 	preg_match_all($this->actionpat, $content, $match);
 		$holders = $match[0];  // array of [*IF*] ... [*ENDIF*] strings
 		$orig = $match[1]; // Array of 'original' strings containing conditional placeholders
 		$repl = $match[2]; // Array of substitute strings
@@ -272,11 +275,12 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   			$str = $orig[$key];
   			// Substitute values for the conditional place holder
   			foreach ($atts as $k2 => $v2) {
-      			if (stripos($str,'[*'. $k2 .'*]') !== false) { // found one?
+  				$pat = $this->brackets[0] . $k2 .  $this->brackets[1];
+      			if (stripos($str, $pat) !== false) { // found one?   
       			    $novalue = empty($v2);
-      			    if ($novalue)  // Oops, no value for this one
+      			    if ($novalue)  // Oops, no value for this one, quit looking
       			    	break;
-        			$str = str_ireplace('[*'. $k2 .'*]',$v2,$str);
+        			$str = str_ireplace($pat,$v2,$str);
       			}
       		}
      		if ($novalue)
