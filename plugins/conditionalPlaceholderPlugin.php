@@ -30,7 +30,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '1.0a2';
+    public $version = '1.0a3';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -174,7 +174,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
    	
     	// Configuration errors in brackets and keywords are always checked whether
     	// there are placeholders in the message or not.
-    	//$res = $this->checkConfig();
+    	$res = $this->checkConfig();
     	if ($res)
     		return "Config Error: $res";
     		
