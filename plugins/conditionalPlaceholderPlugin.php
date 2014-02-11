@@ -30,7 +30,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '1.0a3';
+    public $version = '1.0a4';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -56,17 +56,24 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 	private function loadAttributeNames()
 	{
 		$attnames = array();
+		$attkeys = array();
+		
    		$att_table = $GLOBALS['tables']["attribute"];
     	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
     	while ($row = Sql_Fetch_Row($res))
     		$attnames[] = $row[0];
-    		
-    	foreach ($attnames as &$aname) 
-    		$aname = strtoupper($aname);
-    	unset ($aname);  // Not sure if this is needed. The reference should disappear when $attnames goes out of scope.
     	
-    	return $attnames;
-       
+    // Stolen from phplist parsePlaceHolders function
+ 	 	## the editor turns all non-ascii chars into the html equivalent so do that as well	
+    	foreach ($attnames as $aname) {
+    		$attkeys[strtoupper($aname)] = 1;
+			$attkeys[htmlentities(strtoupper($aname),ENT_QUOTES,'UTF-8')] = 1;
+			$attkeys[str_ireplace(' ','&nbsp;',strtoupper($aname))] = 1;
+		}
+	
+		$attnames = array_keys($attkeys);
+        	
+    	return $attnames;    
 	}
             	
 	public function __construct()
