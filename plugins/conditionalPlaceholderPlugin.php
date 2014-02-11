@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 1.0a2
+ * conditionalPlaceholder plugin version 1.0a4
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
