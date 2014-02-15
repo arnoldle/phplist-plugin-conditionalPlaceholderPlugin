@@ -164,6 +164,9 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	}
     	if ($badK)
     		return 'A keyword cannot be an empty string in the config file!';
+    		
+    	if ((empty($this->testflag)) || (empty($this->listsep)) || (empty($this->ellipsis)))
+    		return 'Neither $testflag nor $listsep nor $ellipsis can be empty strings in the config file!';
     	
     	$test = $this->brackets[0] . 'TEST' . $this->brackets[1];
     	if ($test != strip_tags($test))
@@ -183,7 +186,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	$aplacehldr = trim($aplacehldr); 	
     	
     	// Remove testflag. It's not needed for this check
-		$aplacehldr = preg_replace('@^'.preg_quote($this->testflag) .'@Ums', '', $aplacehldr); 
+		$aplacehldr = preg_replace('@^\s*'.preg_quote($this->testflag) .'\s*@Ums', '', $aplacehldr); 
     	
     	if ((substr_count($aplacehldr, '(') > 1) || (substr_count($aplacehldr, ')') > 1))
     		return "Cannot have more than one set of parentheses in placeholder ";
@@ -192,7 +195,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	if ((($ppos !== FALSE) && (strpos($aplacehldr, ')') === FALSE)) || (($ppos === FALSE) && (strpos($aplacehldr, ')') !== FALSE)))
     		return "Unbalanced parentheses in placeholder ";
     	
-    	if (preg_match('@\)\S+$@Usm', $aplacehldr))  // White space after the closing paren is OK
+    	if (preg_match('@\)\s*\S+.*$@Usm', $aplacehldr))  // White space after the closing paren is OK
     		return "Cannot have material after final parenthesis in placeholder ";
     		
     	if (preg_match('@(\s*)@Usm', $aplacehldr))
@@ -211,7 +214,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     			$cnt = substr_count ($aval, $this->ellipsis);
     			if (!$cnt)
     				continue;
-    			if ($aval == $this->ellipsis)
+    			if ($aval == $this->ellipsis) // White space has been trimmed off
     				return "Must have at least a starting or ending value in range in placeholder ";
     			if ($cnt > 1)
     				return "Cannot have double range $aval in placeholder ";
