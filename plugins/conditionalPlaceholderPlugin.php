@@ -99,9 +99,15 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         		$val = trim ($val);
         	unset ($val);
         	
-        	$this->listsep = cpConfig::$listsep;
- 			$this->ellipsis = cpConfig::$ellipsis;
- 			$this->testflag = cpConfig::$testflag;
+        	// Make sure everything still works even if we are using the version 1.0
+        	// config file
+        	if (isset(cpConfig::$listsep) && (!empty(cpConfig::$listsep)))
+        		$this->listsep = cpConfig::$listsep;
+ 			if (isset(cpConfig::$ellipsis) && (!empty(cpConfig::$ellipsis)))
+        		$this->ellipsis = cpConfig::$ellipsis;
+ 			if (isset(cpConfig::$testflag) && (!empty(cpConfig::$testflag)))
+        		$this->testflag = cpConfig::$testflag;
+        		
 			$this->needElse = cpConfig::$explicitElse;
         }
       
