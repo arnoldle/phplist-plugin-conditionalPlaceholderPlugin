@@ -46,7 +46,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 	private $needElse = true;
 	
 	private $pif, $pels, $pend, $pelsif;
-	private $actionpat, $phpat; // Patterns for replacing placeholders
+	private $actionpat, $phpat, $brackpat, $syntaxpat; // Regex patterns
 	private $user_att_values = array();
 	private $attNames = array();
 	
@@ -118,9 +118,20 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         	$ary[$key] = $this->brackets[0] . $val . $this->brackets[1];
         list ($this->pif, $this->pels, $this->pend, $this->pelsif) = $ary;
 
-        // Build regex pattern for placeholder processing
-       $this->actionpat= '@' . preg_quote($this->pif) . '(.*)((?:' . preg_quote($this->pelsif) . '.*)*)(?:' . preg_quote($this->pels) . '(.*))?' . preg_quote($this->pend) .'@Ums';
-       $this->phpat = '@' . preg_quote($this->brackets[0]) . '(.*)' .preg_quote($this->brackets[1]) . '@Ums';
+        // Build regex pattern for placeholder processing. Note that we must
+        // quote our delimiter '@' in case a user should put it into the syntax
+       $mypat = preg_quote($this->pif) . '(.*)((?:' . preg_quote($this->pelsif) . '.*)*)(?:' . preg_quote($this->pels) . '(.*))?' . preg_quote($this->pend);
+       $this->actionpat = '@' .str_replace('@', '\@', $mypat) .'@Ums';
+       
+       $mypat = preg_quote($this->brackets[0]) . '(.*)' .preg_quote($this->brackets[1]);
+       $this->phpat = '@' .str_replace('@', '\@', $mypat) .'@Ums';
+       
+       $mypat = preg_quote($this->brackets[0]) . ')|(?:' .preg_quote($this->brackets[1]);
+       $this->brackpat = '@(?:' . str_replace('@', '\@', $mypat) . ')@m';
+       
+       $mypat = preg_quote($this->testflag) . ')?' . preg_quote($this->brackets[0]) . '(.*)' . preg_quote($this->brackets[1]);
+       $this->syntaxpat = '@(?:' . str_replace('@', '\@', $mypat) . '@Ums';
+      	
        parent::__construct();
     }
     
@@ -129,8 +140,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     // It's a two-state machine.
     private function bracketsBalance($str)
     {
-    	$pat = '@(?:' . preg_quote($this->brackets[0]) . ')|(?:' .preg_quote($this->brackets[1]) . ')@m';
-    	preg_match_all ($pat, $str, $match);
+    	preg_match_all ($this->brackpat, $str, $match);
     	$brckts = $match[0];
     	$n = count($brckts);
     	$state = 0;
@@ -230,7 +240,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     				else 
     					return "Cannot have implied beginning in more tnan one range in placeholder ";
     			}
-    			if (preg_match('@' . preg_quote($this->ellipsis) . '$@Ums', $aval, $match)) {
+    			if (preg_match('@' . str_replace('@', '\@',preg_quote($this->ellipsis)) . '$@Ums', $aval, $match)) {
     				if (!$toinf)
     					$toinf = TRUE;
     				else 
@@ -251,11 +261,11 @@ class conditionalPlaceholderPlugin extends phplistPlugin
    */
 
 	public function allowMessageToBeQueued($messagedata = array()) {
+		
 		$places = array($messagedata['message'], $messagedata['textmessage'], $messagedata['subject'], $this->loadTemplate($messagedata['template']));
   		$placenames = array('message', 'text message', 'subject line', 'template');
   
-  		$pat = '@(?:' . preg_quote($this->testflag) . ')?' . preg_quote($this->brackets[0]) . '(.*)' . preg_quote($this->brackets[1]) . '@Ums';
-    	$symbols = array($this->pif, '', $this->pels, $this->pend, $this->pelsif);
+  		$symbols = array($this->pif, '', $this->pels, $this->pend, $this->pelsif);
    	
     	// Configuration errors in brackets and keywords are always checked whether
     	// there are placeholders in the message or not.
@@ -274,7 +284,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   			if (!$this->bracketsBalance($str))
   				return "Conditional brackets do not balance in $placenames[$key]!";
   				
-  			preg_match_all($pat, $str, $match);
+  			preg_match_all($this->syntaxpat, $str, $match);
   			$found = $match[0]; 	// The symbols we found
   			$enclosd = $match[1]; 	// What's between the brackets
     		$n = count($found);
