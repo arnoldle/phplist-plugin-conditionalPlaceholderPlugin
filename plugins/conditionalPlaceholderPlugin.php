@@ -69,17 +69,16 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
     	while ($row = Sql_Fetch_Row($res))
     		$attnames[] = $row[0];
-    	
+    		
+		// Stolen from phplist parsePlaceHolders function
     	## the editor turns all non-ascii chars into the html equivalent so do that as well	
     	foreach ($attnames as $aname) {
     		$attkeys[strtoupper($aname)] = 1;
-			$attkeys[htmlentities(strtoupper($key),ENT_QUOTES,'UTF-8')] = 1;
-			$attkeys[str_ireplace(' ','&nbsp;',strtoupper($key))] = 1;
+			$attkeys[htmlentities(strtoupper($aname),ENT_QUOTES,'UTF-8')] = 1;
+			$attkeys[str_ireplace(' ','&nbsp;',strtoupper($aname))] = 1;
 		}
-	
-		$attnames = array_keys($attname);
-        	
-    	return $attnames;    
+
+		return array_keys($attkeys);
 	}
             	
 	public function __construct()
@@ -189,6 +188,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     // that will turn up during use of the plugin.
     private function check_placeholder($aplacehldr) {
     	// Be tolerant of whitespace
+    	
     	$aplacehldr = trim($aplacehldr); 	
     	
     	// Remove testflag. It's not needed for this check
@@ -204,11 +204,11 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	if (preg_match('@\)\s*\S+.*$@Usm', $aplacehldr))  // White space after the closing paren is OK
     		return "Cannot have material after final parenthesis in placeholder ";
     		
-    	if (preg_match('@(\s*)@Usm', $aplacehldr))
+    	if (preg_match('@\(\s*\)@Usm', $aplacehldr))
     		return 'Cannot have empty parentheses in placeholder ';
-    	
+
     	preg_match('@(.*)(?:\((.*)\))?$@Ums', $aplacehldr, $match);
-    	if (!in_array(trim($match[1]),$attnames))
+    	if (!in_array(trim($match[1]),$this->attnames))
     		return "Unknown atttribute in placeholder ";
     	
     	$from0 = FALSE;
@@ -316,7 +316,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   								$ptr++;		// Don't need 'else' and found 'endif'
   								$state = 0;
   							} else  	// found 'endif'
-  								return "Found keyword $current without preceding $pels in $placenames[$key]!";
+  								return "Found keyword $current without preceding $this->pels in $placenames[$key]!";
   						} elseif (in_array($current, $symbols)) // Found 'if' 
   							return "Found keyword $current out of place in $placenames[$key]!";
   						else {
@@ -385,7 +385,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
  	// proper string.
  	 private function parseOutgoingMessage($content)
  	 {
- 	 	// If none of our placeholders in message, we have nothing to do
+
+	 	// If none of our placeholders in message, we have nothing to do
  	 	if ((!$content) || (strpos($content, $this->brackets[0]) === false))
  	 		return $content;
  	
@@ -393,6 +394,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 		$mt = function($var) { return empty($var); };
 	
  	 	$atts = array();
+ 	 	
  	 	// Stolen from phplist parsePlaceHolders function
  	 	## the editor turns all non-ascii chars into the html equivalent so do that as well	
  	 	foreach ($this->user_att_values as $key => $val) {
@@ -425,15 +427,16 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 		}
 		
   		$defaults = $match[3]; // Array of [*ELSE*] strings
-  		
-  		// Now process the placeholders by looping of the array of [*IF*]...[*ENDIF*] structures
+  
+ 		// Now process the placeholders by looping of the array of [*IF*]...[*ENDIF*] structures
   		$ns = count($structs);
   		for ($ix = 0; $ix < $ns; $ix++) { // Loop over list of [*IF*]...[*ENDIF*] structures
   			$replacement = "";
   			
   			// Handle each of the clauses of a particular structure in sequence
   			foreach ($texts[$ix] as $str) {
-  				preg_match_all($phpat, $str, $match);
+  
+  				preg_match_all($this->phpat, $str, $match);
   				$orig = $match[0];		// Array of placeholders including brackets
   				$holder = $match[1];	// Array of placeholder stuff that is between the brackets
   				
@@ -446,19 +449,20 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   					$iy += 1; 
   					$val_ary = array();					
   					$str2 = trim($str2);
-   					$test = (strpos($str2, $testflag) === 0);  //Is this a test or genuine placeholder?
+   					$test = (strpos($str2, $this->testflag) === 0);  //Is this a test or genuine placeholder?
   					if ($test)
   						$str2 = ltrim(substr($str2, 1));
   					$ary = explode('(', $str2);	// Separate attribute and acceptable values
   					$the_att = trim($ary[0]);	// Attribute
   					if (isset($ary[1])) {
   						$vals = substr(trim($ary[1]), 0, -1); 	// Remove trailing ')'
-  						$val_ary = array_map('trim',explode($listsep, $vals));
+  						$val_ary = array_map('trim',explode($this->listsep, $vals));
   					} else
   						$val_ary = array();
   					$the_val = $atts[$the_att];
-  					
+  
   					// An empty placeholder value is a failure unless an empty placeholder is explicitly specified
+  
   					if (empty($the_val))
   						if ((empty($val_ary)) || (!in_array (TRUE, array_map($mt, $val_ary)))) {
   							$fail = TRUE;
@@ -495,19 +499,19 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   					// Last chance - is the placeholder value inside a range?
   					$ranges = array();
   					foreach ($val_ary as $myval) {
-  						if (strpos($myval, $ellipsis) === FALSE)
+  						if (strpos($myval, $this->ellipsis) === FALSE)
   							continue;
-  						$myary = array_map('trim', explode($ellipsis, $myval));
+  						$myary = array_map('trim', explode($this->ellipsis, $myval));
   						$myary[0] = (empty($myary[0])? FALSE: $myary[0]);
   						$myary[1] = (empty($myary[1])? FALSE: $myary[1]);
   						$ranges[] = $myary;
   					}
-  					
+
   					// If we get to here every test has failed. So set the fail flag
   					// to TRUE. If we find the placeholder in a range, we will reset it.
   					$fail = TRUE;
   					foreach ($ranges as $arange) {
-  						if (between($the_val, $arange[0], $arange[1])) {  // The placeholder fits a range
+  						if ($this->between($the_val, $arange[0], $arange[1])) {  // The placeholder fits a range
   							if ($test)
   								$str = str_replace($orig[$iy], '', $str);
   							else
@@ -536,6 +540,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   				$replacement = $defaults[$ix];
   			// Replace the structure in the text content
   			$content = str_replace($structs[$ix], $replacement, $content);
+  
   		} // End of loop over structures
 
 		return $content; 
