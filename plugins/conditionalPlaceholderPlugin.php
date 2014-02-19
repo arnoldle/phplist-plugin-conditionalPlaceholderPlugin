@@ -69,15 +69,9 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	$res = Sql_Query(sprintf('SELECT Name FROM %s', $att_table));
     	while ($row = Sql_Fetch_Row($res))
     		$attnames[] = $row[0];
-<<<<<<< HEAD
-    	
-    // Stolen from phplist parsePlaceHolders function
- 	 	## the editor turns all non-ascii chars into the html equivalent so do that as well	
-=======
-    		
+		
 		// Stolen from phplist parsePlaceHolders function
     	## the editor turns all non-ascii chars into the html equivalent so do that as well	
->>>>>>> Version-2.0
     	foreach ($attnames as $aname) {
     		$attkeys[strtoupper($aname)] = 1;
 			$attkeys[htmlentities(strtoupper($aname),ENT_QUOTES,'UTF-8')] = 1;
