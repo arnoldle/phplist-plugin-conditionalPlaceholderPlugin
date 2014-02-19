@@ -185,7 +185,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     		
     	$test = array_merge($this->brackets, $this->keywords, array($this->listsep, $this->ellipsis, $this->testflag));
     	foreach ($test as $str) {
-    		if (preg_match('@\s@', $str))
+    		if (preg_match('@\s@m', $str))
     			return 'The items in the config file cannot contain white space!';
     	}
     	
