@@ -31,11 +31,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-<<<<<<< HEAD
-    public $version = '1.0a4';
-=======
     public $version = '2.0a1';
->>>>>>> Version-2.0
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -87,15 +83,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 			$attkeys[htmlentities(strtoupper($aname),ENT_QUOTES,'UTF-8')] = 1;
 			$attkeys[str_ireplace(' ','&nbsp;',strtoupper($aname))] = 1;
 		}
-<<<<<<< HEAD
-	
-		$attnames = array_keys($attkeys);
-        	
-    	return $attnames;    
-=======
-
 		return array_keys($attkeys);
->>>>>>> Version-2.0
 	}
             	
 	public function __construct()
