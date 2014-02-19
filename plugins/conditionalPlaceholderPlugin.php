@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 2.0a1
+ * conditionalPlaceholder plugin version 2.0a2
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -31,7 +31,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a1';
+    public $version = '2.0a2';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -182,6 +182,17 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     		
     	if ((empty($this->testflag)) || (empty($this->listsep)) || (empty($this->ellipsis)))
     		return 'Neither $testflag nor $listsep nor $ellipsis can be empty strings in the config file!';
+    		
+    	$test = array_merge($this->brackets, $this->keywords, array($this->listsep, $this->ellipsis, $this->testflag));
+    	foreach ($test as $str) {
+    		if (preg_match('@\s@', $str))
+    			return 'The items in the config file cannot contain white space!';
+    	}
+    	
+    	$tcnt = count($test);
+    	if (count(array_flip($test)) != $tcnt)
+    		return 'Each item in the config file must be unique!';
+    	
     	
     	$test = $this->brackets[0] . 'TEST' . $this->brackets[1];
     	if ($test != strip_tags($test))
