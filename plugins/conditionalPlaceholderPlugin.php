@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 2.0a2
+ * conditionalPlaceholder plugin version 2.0a3
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -31,7 +31,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a2';
+    public $version = '2.0a3';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -49,6 +49,13 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 	private $actionpat, $phpat, $brackpat, $syntaxpat; // Regex patterns
 	private $user_att_values = array();
 	private $attNames = array();
+	
+	// This plugin has no web pages. So make sure that nothing appears in the 
+	// dashboard menu
+	function adminmenu() {
+    	return array ();
+  	}
+
 	
 	private function loadTemplate($tid)
 	{
