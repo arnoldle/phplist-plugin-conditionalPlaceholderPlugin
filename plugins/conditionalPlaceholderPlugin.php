@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 2.0a3
+ * conditionalPlaceholder plugin version 2.0a4
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -31,7 +31,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a3';
+    public $version = '2.0a4';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -128,16 +128,16 @@ class conditionalPlaceholderPlugin extends phplistPlugin
         // Build regex pattern for placeholder processing. Note that we must
         // quote our delimiter '@' in case a user should put it into the syntax
        $mypat = preg_quote($this->pif) . '(.*)((?:' . preg_quote($this->pelsif) . '.*)*)(?:' . preg_quote($this->pels) . '(.*))?' . preg_quote($this->pend);
-       $this->actionpat = '@' .str_replace('@', '\@', $mypat) .'@Ums';
+       $this->actionpat = '@' .str_replace('@', '\@', $mypat) .'@Us';
        
        $mypat = preg_quote($this->brackets[0]) . '(.*)' .preg_quote($this->brackets[1]);
-       $this->phpat = '@' .str_replace('@', '\@', $mypat) .'@Ums';
+       $this->phpat = '@' .str_replace('@', '\@', $mypat) .'@Us';
        
        $mypat = preg_quote($this->brackets[0]) . ')|(?:' .preg_quote($this->brackets[1]);
-       $this->brackpat = '@(?:' . str_replace('@', '\@', $mypat) . ')@m';
+       $this->brackpat = '@(?:' . str_replace('@', '\@', $mypat) . ')@';
        
        $mypat = preg_quote($this->testflag) . ')?' . preg_quote($this->brackets[0]) . '(.*)' . preg_quote($this->brackets[1]);
-       $this->syntaxpat = '@(?:' . str_replace('@', '\@', $mypat) . '@Ums';
+       $this->syntaxpat = '@(?:' . str_replace('@', '\@', $mypat) . '@Us';
       	
        parent::__construct();
     }
@@ -220,7 +220,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	$aplacehldr = trim($aplacehldr); 	
     	
     	// Remove testflag. It's not needed for this check
-		$aplacehldr = preg_replace('@^\s*'.preg_quote($this->testflag) .'\s*@Ums', '', $aplacehldr); 
+		$aplacehldr = preg_replace('@^\s*'.preg_quote($this->testflag) .'\s*@Us', '', $aplacehldr); 
     	
     	if ((substr_count($aplacehldr, '(') > 1) || (substr_count($aplacehldr, ')') > 1))
     		return "Cannot have more than one set of parentheses in placeholder ";
@@ -229,13 +229,13 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	if ((($ppos !== FALSE) && (strpos($aplacehldr, ')') === FALSE)) || (($ppos === FALSE) && (strpos($aplacehldr, ')') !== FALSE)))
     		return "Unbalanced parentheses in placeholder ";
     	
-    	if (preg_match('@\)\s*\S+.*$@Usm', $aplacehldr))  // White space after the closing paren is OK
+    	if (preg_match('@\)\s*\S+.*$@Us', $aplacehldr))  // White space after the closing paren is OK
     		return "Cannot have material after final parenthesis in placeholder ";
     		
-    	if (preg_match('@\(\s*\)@Usm', $aplacehldr))
+    	if (preg_match('@\(\s*\)@Us', $aplacehldr))
     		return 'Cannot have empty parentheses in placeholder ';
 
-    	preg_match('@(.*)(?:\((.*)\))?$@Ums', $aplacehldr, $match);
+    	preg_match('@(.*)(?:\((.*)\))?$@Us', $aplacehldr, $match);
     	if (!in_array(trim($match[1]),$this->attnames))
     		return "Unknown atttribute in placeholder ";
     	
@@ -258,7 +258,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     				else 
     					return "Cannot have implied beginning in more tnan one range in placeholder ";
     			}
-    			if (preg_match('@' . str_replace('@', '\@',preg_quote($this->ellipsis)) . '$@Ums', $aval, $match)) {
+    			if (preg_match('@' . str_replace('@', '\@',preg_quote($this->ellipsis)) . '$@Us', $aval, $match)) {
     				if (!$toinf)
     					$toinf = TRUE;
     				else 
