@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 2.0a4
+ * conditionalPlaceholder plugin version 2.0a5
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -31,7 +31,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a4';
+    public $version = '2.0a5';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -613,8 +613,10 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   
   public function messageHeaders($mail)
   {
-  	$mail->Subject = parsePlaceHolders($mail->Subject, $this->user_att_values);
-  	$mail->Subject = $this->parseOutgoingMessage($mail->Subject);
+  	if (function_exists('parsePlaceHolders')) { // Function is not defined when system messages are mailed
+  		$mail->Subject = parsePlaceHolders($mail->Subject, $this->user_att_values);
+  		$mail->Subject = $this->parseOutgoingMessage($mail->Subject);
+  	}
     return array(); //@@@
   }
 
