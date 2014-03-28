@@ -215,7 +215,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     // can be recognized by our regex expressions
     function elimNbsp($str) {
     	$str = str_replace('&nbsp;', ' ', $str);
-    	$str = htmlspecialchars_decode ($str ENT_QUOTES | ENT_HTML401);
+    	$str = htmlspecialchars_decode($str, ENT_QUOTES);
     	return trim($str);
     }
     
