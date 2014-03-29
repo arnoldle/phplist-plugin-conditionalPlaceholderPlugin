@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 2.0a5
+ * conditionalPlaceholder plugin version 2.0a6
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -31,7 +31,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a5';
+    public $version = '2.0a6';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -211,13 +211,20 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     	return '';
     }
     
+    // This function turns any entities introduced by the editor back into chars that
+    // can be recognized by our regex expressions
+    function elimNbsp($str) {
+    	$str = str_replace('&nbsp;', ' ', $str);
+    	$str = htmlspecialchars_decode($str, ENT_QUOTES);
+    	return trim($str);
+    }
+    
     // This function checks placeholders after the outer brackets have been removed
     // We make whatever general checks make sense without out knowing the attribute values
     // that will turn up during use of the plugin.
     private function check_placeholder($aplacehldr) {
-    	// Be tolerant of whitespace
-    	
-    	$aplacehldr = trim($aplacehldr); 	
+    	// Eliminate entities and leading and trailing white space
+    	$aplacehldr = $this->elimNbsp($aplacehldr); 	
     	
     	// Remove testflag. It's not needed for this check
 		$aplacehldr = preg_replace('@^\s*'.preg_quote($this->testflag) .'\s*@Us', '', $aplacehldr); 
@@ -297,6 +304,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   		foreach ($places as $key => $str) {
   			if (!$str)
   				continue;
+  			
+  			$str = $this->elimNbsp($str); 	// Make sure that no entities screw up regex matches
   				
   			// Make sure that we have no open brackets
   			if (!$this->bracketsBalance($str))
@@ -473,7 +482,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   				// go to the next clause
   				$fail = FALSE;
   				$iy = -1;
-   				foreach ($holder as $str2) {
+   				foreach ($holder as $stra) {
+   					$str2 = $this->elimNbsp($stra);
   					$iy += 1; 
   					$val_ary = array();					
   					$str2 = trim($str2);
