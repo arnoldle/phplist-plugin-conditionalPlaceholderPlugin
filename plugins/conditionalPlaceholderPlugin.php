@@ -1,12 +1,31 @@
 <?php
 
 /**
- * conditionalPlaceholder plugin version 2.0a6
+ * conditionalPlaceholder Plugin version 2.0a6
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
  * as conditional placeholders. Version 2 greatly expands the functionality of this
  * plugin over what was available in version 1.
+ *
+ * @category  phplist
+ * @package   conditionalPlaceholder Plugin
+ * @author    Arnold V. Lesikar
+ * @copyright 2014 Arnold V. Lesikar
+ * @license   http://www.gnu.org/licenses/gpl.html GNU General Public License, Version 3
+ * 
+ * The conditionalPlaceholder Plugin is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  * For more information about how to use this plugin, see
  * http://resources.phplist.com/plugins/conditionalplaceholder .
