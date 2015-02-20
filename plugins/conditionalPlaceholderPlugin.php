@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder Plugin version 2.0a6
+ * conditionalPlaceholder Plugin version 2.0a7
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -50,7 +50,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a6';
+    public $version = '2.0a7';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -233,8 +233,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     // This function turns any entities introduced by the editor back into chars that
     // can be recognized by our regex expressions
     function elimNbsp($str) {
-    	$str = str_replace('&nbsp;', ' ', $str);
-    	$str = htmlspecialchars_decode($str, ENT_QUOTES);
+    	$str = html_entity_decode ($str, ENT_QUOTES, 'UTF-8');
     	return trim($str);
     }
     
@@ -441,7 +440,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
  	// proper string.
  	 private function parseOutgoingMessage($content)
  	 {
-
+ 	 
+ 
 	 	// If none of our placeholders in message, we have nothing to do
  	 	if ((!$content) || (strpos($content, $this->brackets[0]) === false))
  	 		return $content;
@@ -458,7 +458,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
     		$atts[htmlentities(strtoupper($key),ENT_QUOTES,'UTF-8')] = $val;
     		$atts[str_ireplace(' ','&nbsp;',strtoupper($key))] = $val;
   		}
-
+ 	 
  	 	preg_match_all($this->actionpat, $content, $match);
 		$structs = $match[0];  // array of [*IF*] ... [*ENDIF*] strings
 		
@@ -476,14 +476,14 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 			$others = array_values($temp);	 // Array of [*ELSEIF*] strings
 			$iy = 1;
 			foreach ($others as $itm) {
-				$texts[$ix][$iy] = $itm;
+				$texts[$ix][$iy] = $this->elimNbsp($itm); //Html entities replace by chars for searching
 				$iy +=1;
 			}
 			$ix +=1;
 		}
 		
   		$defaults = $match[3]; // Array of [*ELSE*] strings
-  
+				
  		// Now process the placeholders by looping of the array of [*IF*]...[*ENDIF*] structures
   		$ns = count($structs);
   		for ($ix = 0; $ix < $ns; $ix++) { // Loop over list of [*IF*]...[*ENDIF*] structures
@@ -501,8 +501,9 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   				// go to the next clause
   				$fail = FALSE;
   				$iy = -1;
-   				foreach ($holder as $stra) {
-   					$str2 = $this->elimNbsp($stra);
+   				foreach ($holder as $str2) {
+   					// $str2 = $this->elimNbsp($stra); Have already converted entities to chars
+   					// in creating $texts array. So changed $stra to $str2 in foreach
   					$iy += 1; 
   					$val_ary = array();					
   					$str2 = trim($str2);
@@ -586,7 +587,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 				// If no failures in this clause it is valid. So replace the
 				// entire structure with that clause and move to next structure
   				if (!$fail) {
-  					$replacement = $str;
+  					$replacement =  $str;	// Searched had used chars instead of entities
   					break;
   				}	
   				
@@ -594,7 +595,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   			// If we have looped over all the clauses without finding one that is OK, we
   			// use the default as the  replacement for the structure
   			if ($fail)
-  				$replacement = $defaults[$ix];
+  				$replacement =  $defaults[$ix];  // Entities should have remained in the defaults
   			// Replace the structure in the text content
   			$content = str_replace($structs[$ix], $replacement, $content);
   
@@ -603,7 +604,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 		return $content; 
  	 }
    
-    /* 
+  /* 
    * parseOutgoingTextMessage
    * @param integer messageid: ID of the message
    * @param string  content: entire text content of a message going out
