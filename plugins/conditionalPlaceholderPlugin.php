@@ -476,7 +476,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 			$others = array_values($temp);	 // Array of [*ELSEIF*] strings
 			$iy = 1;
 			foreach ($others as $itm) {
-				$texts[$ix][$iy] = $this->elimNbsp($itm); //Html entities replace by chars for searching
+				$texts[$ix][$iy] = $this->elimNbsp($itm); //Html entities replaced by chars for searching
 				$iy +=1;
 			}
 			$ix +=1;
@@ -587,7 +587,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 				// If no failures in this clause it is valid. So replace the
 				// entire structure with that clause and move to next structure
   				if (!$fail) {
-  					$replacement =  $str;	// Searched had used chars instead of entities
+  					$replacement =  $str;	
   					break;
   				}	
   				
@@ -595,7 +595,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   			// If we have looped over all the clauses without finding one that is OK, we
   			// use the default as the  replacement for the structure
   			if ($fail)
-  				$replacement =  $defaults[$ix];  // Entities should have remained in the defaults
+  				$replacement =  $defaults[$ix];  
   			// Replace the structure in the text content
   			$content = str_replace($structs[$ix], $replacement, $content);
   
