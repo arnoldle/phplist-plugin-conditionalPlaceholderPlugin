@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder Plugin version 2.0a7
+ * conditionalPlaceholder Plugin version 2.0a8
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -50,7 +50,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a7';
+    public $version = '2.0a8';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -407,6 +407,10 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   
 	public function setFinalDestinationEmail($messageid, $uservalues, $email) { 
 		$this->user_att_values = $uservalues;
+		array_walk($this->user_att_values, function(&$itm, $key) {
+						$itm = trim($itm);
+						}
+					);
     	return $email;
  	 }
  	 
@@ -515,12 +519,11 @@ class conditionalPlaceholderPlugin extends phplistPlugin
   					if (isset($ary[1])) {
   						$vals = substr(trim($ary[1]), 0, -1); 	// Remove trailing ')'
   						$val_ary = array_map('trim',explode($this->listsep, $vals));
-  					} else
+  					} else		// This code seems to be redundant, but it doesn't hurt anything
   						$val_ary = array();
   					$the_val = $atts[$the_att];
-  
-  					// An empty placeholder value is a failure unless an empty placeholder is explicitly specified
-  
+  				
+  					// An empty placeholder value is a failure unless an empty placeholder is explicitly specified  
   					if (empty($the_val))
   						if ((empty($val_ary)) || (!in_array (TRUE, array_map($mt, $val_ary)))) {
   							$fail = TRUE;
