@@ -1,7 +1,7 @@
 <?php
 
 /**
- * conditionalPlaceholder Plugin version 2.0a8
+ * conditionalPlaceholder Plugin version 2.0a9
  * 
  * This plugin allows the use of conditional placeholders in PHPlist html and text messages
  * It allows standard placeholders to be used in the subject line of messages, as well
@@ -50,7 +50,7 @@ class conditionalPlaceholderPlugin extends phplistPlugin
      *  Inherited variables
      */
     public $name = 'Conditional Placeholder Plugin';
-    public $version = '2.0a8';
+    public $version = '2.0a9';
     public $enabled = false;
     public $authors = 'Arnold Lesikar';
     public $description = 'Allows the use of conditional placeholders in messages';
@@ -468,7 +468,8 @@ class conditionalPlaceholderPlugin extends phplistPlugin
 		
 		$ix = 0;
 		foreach($match[1] as $val) { // Array of first strings preceded by [*IF*]
-			$texts[$ix][0] = $val;	// $ix indexes the list of [*IF*]...[*ENDIF*] structures
+			$texts[$ix][0] = $this->elimNbsp($val);	// $ix indexes the list of [*IF*]...[*ENDIF*] structures
+													// Html chars replaced for searching
 			$ix += 1;
 		}
 		
